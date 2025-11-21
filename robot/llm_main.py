@@ -340,6 +340,26 @@ def get_ui():
         }
         .status.success { background: #4caf50; color: white; }
         .status.error { background: #f44336; color: white; }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .voice-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            flex: 1;
+        }
+        .voice-btn.listening {
+            background: #ff4444;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .text-btn {
+            flex: 2;
+        }
     </style>
 </head>
 <body>
@@ -361,7 +381,10 @@ def get_ui():
             <input type="text" id="command" placeholder="예: 정사각형으로 움직여줘" />
         </div>
 
-        <button onclick="sendCommand()">🚀 실행하기</button>
+        <div class="button-group">
+            <button class="voice-btn" id="voiceBtn" onclick="startVoiceRecognition()">🎤 음성 명령</button>
+            <button class="text-btn" onclick="sendCommand()">🚀 텍스트 실행</button>
+        </div>
 
         <div id="response" style="display:none;" class="response">
             <div id="status"></div>
@@ -372,6 +395,68 @@ def get_ui():
     </div>
 
     <script>
+        // Web Speech API 초기화
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        let isListening = false;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'ko-KR';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = function() {
+                isListening = true;
+                const voiceBtn = document.getElementById('voiceBtn');
+                voiceBtn.classList.add('listening');
+                voiceBtn.textContent = '🎤 듣는 중...';
+            };
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('command').value = transcript;
+                // 자동으로 명령 실행
+                sendCommand();
+            };
+
+            recognition.onerror = function(event) {
+                console.error('음성 인식 오류:', event.error);
+                alert('음성 인식 오류: ' + event.error);
+                resetVoiceButton();
+            };
+
+            recognition.onend = function() {
+                resetVoiceButton();
+            };
+        }
+
+        function resetVoiceButton() {
+            isListening = false;
+            const voiceBtn = document.getElementById('voiceBtn');
+            voiceBtn.classList.remove('listening');
+            voiceBtn.textContent = '🎤 음성 명령';
+        }
+
+        function startVoiceRecognition() {
+            if (!recognition) {
+                alert('이 브라우저는 음성 인식을 지원하지 않습니다. Chrome을 사용해주세요.');
+                return;
+            }
+
+            if (isListening) {
+                recognition.stop();
+                return;
+            }
+
+            try {
+                recognition.start();
+            } catch (error) {
+                console.error('음성 인식 시작 오류:', error);
+                alert('음성 인식을 시작할 수 없습니다: ' + error.message);
+            }
+        }
+
         function setCommand(cmd) {
             document.getElementById('command').value = cmd;
         }
