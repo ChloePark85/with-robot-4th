@@ -193,7 +193,9 @@ class MujocoSimulator:
 
     def get_mobile_position_diff(self) -> np.ndarray:
         """Get mobile base position error [delta_x, delta_y, delta_theta] between target and current position."""
-        return self._mobile_target_position - self.get_mobile_position()
+        diff = self._mobile_target_position - self.get_mobile_position()
+        diff[2] = np.arctan2(np.sin(diff[2]), np.cos(diff[2]))
+        return diff
 
     def get_mobile_velocity(self) -> np.ndarray:
         """Get current mobile base velocity [vx, vy, omega] from joint velocities."""
@@ -208,8 +210,7 @@ class MujocoSimulator:
         current_pos = self.get_mobile_position()
         current_vel = self.get_mobile_velocity()
 
-        pos_error = self._mobile_target_position - current_pos
-        pos_error[2] = np.arctan2(np.sin(pos_error[2]), np.cos(pos_error[2]))  # Normalize angle
+        pos_error = self.get_mobile_position_diff()
         self._mobile_error_integral += pos_error * self.dt
         self._mobile_error_integral = np.clip(
             self._mobile_error_integral,
@@ -324,8 +325,6 @@ class MujocoSimulator:
             while time.time() - start_time < timeout_per_waypoint:
                 # Check position and velocity convergence
                 pos_diff = self.get_mobile_position_diff()
-                # Normalize theta error to [-pi, pi]
-                pos_diff[-1] = np.arctan2(np.sin(pos_diff[-1]), np.cos(pos_diff[-1]))
                 pos_diff[-1] /= 2  # Theta weighted at 50%
                 pos_error = np.linalg.norm(pos_diff)
                 vel_error = np.linalg.norm(self.get_mobile_velocity())

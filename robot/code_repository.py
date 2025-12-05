@@ -1,6 +1,7 @@
 """Sandboxed code execution layer for mobile base control with waiting logic."""
 
 import time
+import math
 import numpy as np
 from typing import Optional, List, Tuple, Callable, Dict, Any
 from simulator import MujocoSimulator
@@ -325,8 +326,14 @@ def exec_code(code: str) -> Optional[Dict[str, Any]]:
     """
     # Define sandboxed environment with limited access
     safe_globals = {
-        "__builtins__": {"print": print, "range": range, "float": float, "time": time},
-        "PI": np.pi,
+        "__builtins__": {
+            "print": print,
+            "range": range,
+            "float": float,
+            "time": time,
+            "math": math,
+            "PI": np.pi
+        },
         "RESULT": {},
         "get_mobile_position": get_mobile_position,
         "set_mobile_target_position": set_mobile_target_position,
